@@ -7,7 +7,6 @@ import { useAuthStore } from "@/stores/auth.store";
 import { useRegisteredCourses, useAvailableCourses } from "@/hooks/queries";
 import {
   ClipboardList,
-  CheckCircle2,
   BookOpen,
   Loader2,
   ArrowRight,
@@ -122,11 +121,7 @@ export function StudentDashboardView() {
                   <Badge variant="outline" className="text-xs font-semibold px-2.5 py-1">
                     {studentLevel} Level
                   </Badge>
-                  {hasRegistered ? (
-                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 text-xs font-semibold">
-                      Enrolled
-                    </Badge>
-                  ) : (
+                  {!hasRegistered && (
                     <Badge className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300 text-xs font-semibold">
                       Registration Pending
                     </Badge>
@@ -236,12 +231,11 @@ export function StudentDashboardView() {
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 font-semibold bg-zinc-50/50 dark:bg-zinc-900/50">
-                    <th className="py-3 px-4 w-10 text-center">S/N</th>
+                    <th className="py-3 px-4 w-12 text-center">S/N</th>
                     <th className="py-3 px-4">Course Code</th>
                     <th className="py-3 px-4">Course Title</th>
-                    <th className="py-3 px-4 text-center">Credit Unit</th>
                     <th className="py-3 px-4 text-center">Type</th>
-                    <th className="py-3 px-4 text-right">Enrollment Status</th>
+                    <th className="py-3 px-4 text-right">Credit Unit</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
@@ -260,9 +254,6 @@ export function StudentDashboardView() {
                         <td className="py-3 px-4 font-medium text-zinc-900 dark:text-zinc-100">
                           {c.title}
                         </td>
-                        <td className="py-3 px-4 text-center font-bold text-zinc-700 dark:text-zinc-300">
-                          {unit}
-                        </td>
                         <td className="py-3 px-4 text-center">
                           <span
                             className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
@@ -274,10 +265,8 @@ export function StudentDashboardView() {
                             {c.isElective ? "Elective" : "Core"}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-right">
-                          <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Enrolled
-                          </span>
+                        <td className="py-3 px-4 text-right font-bold text-zinc-700 dark:text-zinc-300">
+                          {unit}
                         </td>
                       </tr>
                     );
