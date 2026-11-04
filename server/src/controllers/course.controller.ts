@@ -4,6 +4,7 @@ import { CourseAllocation } from "../models/allocation.model";
 import { AcademicSession } from "../models/session.model";
 import { Semester } from "../models/semester.model";
 import { User } from "../models/user.model";
+import { CourseRegistration, Result } from "../models";
 import { asyncHandler, AppError, sendSuccess } from "../utils";
 import { AuthenticatedRequest } from "../middlewares/auth.middleware";
 import { UserRole } from "../constants/roles";
@@ -304,9 +305,41 @@ export class CourseController {
         })
         .populate("session", "name")
         .populate("semester", "name")
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean();
 
-      return sendSuccess(res, allocations, "Assigned courses retrieved successfully");
+      const enrichedAllocations = await Promise.all(
+        allocations.map(async (alloc: any) => {
+          if (!alloc.course) return alloc;
+          const courseId = alloc.course._id;
+          const sessionId = alloc.session?._id || alloc.session;
+          const semesterId = alloc.semester?._id || alloc.semester;
+
+          const [enrolledCount, result] = await Promise.all([
+            CourseRegistration.countDocuments({
+              session: sessionId,
+              semester: semesterId,
+              "courses.course": courseId,
+            } as any),
+            Result.findOne({
+              course: courseId,
+              session: sessionId,
+              semester: semesterId,
+            } as any)
+              .select("status rejectionReason")
+              .lean(),
+          ]);
+
+          return {
+            ...alloc,
+            enrolledCount,
+            resultStatus: (result as any)?.status || "NOT_STARTED",
+            rejectionReason: (result as any)?.rejectionReason || null,
+          };
+        }),
+      );
+
+      return sendSuccess(res, enrichedAllocations, "Assigned courses retrieved successfully");
     },
   );
 }

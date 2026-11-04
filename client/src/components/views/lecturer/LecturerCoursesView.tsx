@@ -8,6 +8,8 @@ import {
   ArrowRight,
   Loader2,
   BookOpen,
+  Users,
+  GraduationCap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,9 +20,9 @@ export function LecturerCoursesView() {
 
   if (isLoading) {
     return (
-      <div className="py-20 flex flex-col items-center justify-center gap-3 text-zinc-500">
+      <div className="py-24 flex flex-col items-center justify-center gap-3 text-zinc-500">
         <Loader2 className="w-6 h-6 animate-spin text-burgundy-700" />
-        <span className="text-xs">Loading teaching allocations...</span>
+        <span className="text-xs font-medium">Loading teaching allocations...</span>
       </div>
     );
   }
@@ -33,18 +35,21 @@ export function LecturerCoursesView() {
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
               Assigned Courses &amp; Classes
             </h1>
-            <Badge variant="outline" className="text-xs font-semibold text-burgundy-700 border-burgundy-200 dark:text-burgundy-300 dark:border-burgundy-900">
-              {allocations.length} Courses
+            <Badge
+              variant="outline"
+              className="text-xs font-semibold text-burgundy-700 border-burgundy-200 dark:text-burgundy-300 dark:border-burgundy-900"
+            >
+              {allocations.length} Course{allocations.length === 1 ? "" : "s"}
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
-            Teaching duties assigned by the Department Administrator for the current semester.
+            Teaching duties and class rosters assigned to you by the Department Administrator for the current semester.
           </p>
         </div>
       </div>
 
       {allocations.length === 0 ? (
-        <Card className="border-zinc-200 dark:border-zinc-800 p-8 text-center space-y-2">
+        <Card className="border-zinc-200 dark:border-zinc-800 p-12 text-center space-y-2">
           <BookOpen className="w-8 h-8 text-zinc-400 mx-auto mb-2" />
           <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
             No Teaching Allocations
@@ -68,15 +73,14 @@ export function LecturerCoursesView() {
                       {course.code}
                     </span>
                     <Badge variant="outline" className="text-xs">
-                      {course.creditUnit} Units
+                      {course.creditUnit} Credit Unit{course.creditUnit === 1 ? "" : "s"}
                     </Badge>
-
                   </div>
                   <CardTitle className="text-base font-bold mt-2 text-zinc-900 dark:text-zinc-100 line-clamp-1">
                     {course.title}
                   </CardTitle>
                   <CardDescription className="text-xs line-clamp-2">
-                    {course.description || "Core departmental course syllabus."}
+                    {course.description || "Core departmental curriculum syllabus and instruction."}
                   </CardDescription>
                 </CardHeader>
 
@@ -96,13 +100,24 @@ export function LecturerCoursesView() {
                     </div>
                   </div>
 
+                  <div className="flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-400">
+                    <span className="flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-zinc-400" />
+                      {item.enrolledCount ?? 0} Enrolled Candidates
+                    </span>
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-burgundy-700 dark:text-burgundy-300">
+                      <GraduationCap className="w-3.5 h-3.5" />
+                      Grading Active
+                    </span>
+                  </div>
+
                   <Button
                     asChild
                     className="w-full bg-burgundy-700 hover:bg-burgundy-800 text-white font-semibold text-xs shadow-xs"
                   >
                     <Link href={`/lecturer/scores/${course._id}`}>
                       <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />
-                      Open Score Sheet
+                      Class Roster &amp; Score Sheet
                       <ArrowRight className="w-3.5 h-3.5 ml-auto" />
                     </Link>
                   </Button>

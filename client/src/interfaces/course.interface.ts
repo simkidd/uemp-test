@@ -22,6 +22,9 @@ export interface ICourseAllocation {
   lecturer: IUser;
   session: ISession | string;
   semester: ISemester | string;
+  enrolledCount?: number;
+  resultStatus?: string;
+  rejectionReason?: string;
   createdAt?: string;
   updatedAt?: string;
 }

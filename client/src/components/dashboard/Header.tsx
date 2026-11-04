@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/auth.store";
 import { useTheme } from "next-themes";
 import { ROLE_LABELS } from "@/constants";
@@ -21,39 +20,17 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useLogout } from "@/hooks/useLogout";
 
 export function Header({ onOpenMobile }: { onOpenMobile?: () => void }) {
-  const pathname = usePathname();
   const { user } = useAuthStore();
   const { handleLogout } = useLogout();
   const { theme, setTheme } = useTheme();
 
   if (!user) return null;
 
-  // Generate dynamic breadcrumb title from pathname
-  const getBreadcrumb = () => {
-    const parts = pathname.split("/").filter(Boolean);
-    if (parts.length <= 2) {
-      return "Portal Overview";
-    }
-    const last = parts[parts.length - 1];
-    return last
-      .split("-")
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(" ");
-  };
-
   return (
     <header className="h-16 px-4 sm:px-6 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between sticky top-0 z-30 md:rounded-t-2xl">
-      {/* Left: Mobile trigger & Breadcrumb */}
+      {/* Left: Mobile & Desktop sidebar trigger */}
       <div className="flex items-center gap-3">
         <SidebarTrigger className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100" />
-        <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800 hidden sm:block" />
-
-        <div className="flex items-center gap-1.5 text-xs text-zinc-500">
-          <span className="hidden md:inline text-zinc-400">Portal /</span>
-          <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            {getBreadcrumb()}
-          </h1>
-        </div>
       </div>
 
       {/* Right: Role Badge, Theme Toggle, Profile Menu */}
