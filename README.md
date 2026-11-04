@@ -15,13 +15,13 @@ UEMP is an institutional portal designed to handle core academic operations with
 ```
                               ┌─────────────────────────────────────────┐
                               │            Next.js Frontend             │
-                              │       (TailwindCSS, Zustand, Radix)     │
+                              │     (App Router, TanStack, Tailwind)    │
                               └────────────────────┬────────────────────┘
-                                                   │ HTTP / REST (JWT)
+                                                   │ HTTP / REST (JWT in Cookie)
                                                    ▼
                               ┌─────────────────────────────────────────┐
                               │           Node.js / Express API         │
-                              │         (TypeScript, RBAC, Zod)         │
+                              │       (TypeScript, RBAC, Zod, Multer)   │
                               └────────────────────┬────────────────────┘
                                                    │ Mongoose ODM
                                                    ▼
@@ -30,6 +30,32 @@ UEMP is an institutional portal designed to handle core academic operations with
                               │    (Users, Courses, Results, Audits)    │
                               └─────────────────────────────────────────┘
 ```
+
+### 🏛️ Architectural Decisions & Technical Rationale
+
+1. **Decoupled Frontend / Backend Architecture**:
+   - The frontend is an independent Next.js 14 application communicating with a dedicated Node.js / Express REST API over standardized JSON. This ensures clear separation of concerns, independent deployment pipelines (e.g. Render for server, Vercel/Render for client), and prevents tight coupling.
+2. **Stateless JWT with Dual-Token Rotation**:
+   - Authentication relies on short-lived signed JWT access tokens transmitted via HTTP Authorization headers and revocable refresh tokens maintained in secure HTTP-only cookies. This eliminates server session state bottlenecks while guaranteeing instant session revocation.
+3. **Multi-Tenant Department Data Isolation (Backend-Enforced Scoping)**:
+   - Data segregation for Department Administrators is not trusted to frontend query parameters. Instead, the backend authorization middleware decodes the admin's institutional department from the verified JWT and injects `req.user.department` directly into MongoDB queries.
+4. **Data Integrity via Compound Unique Indexes**:
+   - Institutional constraints are enforced at the database level using compound unique indexes—preventing double allocations (`course + session + semester`), multiple active registrations (`student + session + semester`), and duplicated result submissions.
+5. **Auditable Result Life-Cycle Engine**:
+   - Result sheets transition through a finite state machine (`DRAFT` &rarr; `SUBMITTED` &rarr; `APPROVED` / `REJECTED`). Every transition automatically creates an immutable `ResultAuditLog` entry tracking the actor, previous status, new status, timestamp, and comments.
+
+### 💻 Technology Stack
+
+| Layer | Technologies & Libraries | Purpose |
+| :--- | :--- | :--- |
+| **Frontend Framework** | **Next.js 14** (App Router), **React 18**, **TypeScript** | Server & Client component rendering, dynamic routing |
+| **Styling & UI Components** | **TailwindCSS**, **Radix UI Primitives**, **Lucide React** | Responsive institutional design, accessible modals & drawers |
+| **Client State & Caching** | **TanStack Query (React Query v5)**, **Zustand** | Server state caching, optimistic mutations, auth session storage |
+| **Backend Runtime & API** | **Node.js (v18+)**, **Express.js**, **TypeScript** | Scalable, typed RESTful API server |
+| **Database & ODM** | **MongoDB (Atlas / Community)**, **Mongoose ODM** | Document database with strongly-typed schemas and compound indexes |
+| **Validation & Security** | **Zod**, **bcryptjs**, **jsonwebtoken**, **cors**, **helmet** | Schema validation, password hashing, and token verification |
+| **File / Media Handling** | **Multer**, **Cloudinary SDK** | Profile avatar uploads and document handling |
+
 
 ---
 
@@ -79,7 +105,48 @@ All test accounts use the default password: **`Password123!`**
 
 ---
 
+## 🔐 Permission Logic & RBAC Enforcement
+
+The platform enforces strict **Role-Based Access Control (RBAC)** across the complete request-response cycle through 5 distinct security rings:
+
+1. **Client-Side Route Protection & Dynamic Shell**:
+   - Frontend routes (`/student/*`, `/lecturer/*`, `/dept-admin/*`, `/admin/*`) are wrapped in authentication guards. Unauthenticated attempts are redirected to `/login`, while authenticated users visiting unauthorized paths are redirected to their designated role dashboard.
+2. **Token Verification Middleware (`authenticate`)**:
+   - Inspects `Authorization: Bearer <token>` or secure HTTP cookie. Decodes and verifies the JWT signature, loads the user record from the database, and asserts that the user account is active (`isActive: true`). Inactive/suspended accounts are immediately rejected with HTTP `403 Forbidden`.
+3. **Role Authorization Middleware (`authorize(...roles)`)**:
+   - Guards endpoints by asserting `roles.includes(req.user.role)`. Attempts by students to reach lecturer/admin routes or lecturers to reach admin routes fail immediately with HTTP `403`.
+4. **Dynamic Department Scope Injection**:
+   - For `DEPARTMENT_ADMIN` requests, the controller injects `query.department = req.user.department` directly into database queries. Department admins can never read, modify, or approve records from other departments, regardless of what query parameters are passed in the HTTP request.
+5. **Institutional Conflict-of-Interest Safeguards**:
+   - **Self-Approval Prohibition**: A lecturer who also holds administrative privileges cannot approve their own submitted result sheets (`result.lecturer !== req.user._id`).
+   - **Result State Visibility**: Students can only query results where `status === "APPROVED"`. `DRAFT`, `SUBMITTED`, or `REJECTED` scores are completely inaccessible to student accounts.
+   - **Account Protection**: Super Admin accounts cannot be deactivated by other admins, and logged-in administrators cannot deactivate their own accounts.
+
+### 🛡️ Role-Based Permission Matrix
+
+| Feature / System Capability | Super Admin | Department Admin | Lecturer | Student |
+| :--- | :---: | :---: | :---: | :---: |
+| **Manage Faculties, Departments & Programmes** | ✅ Full Access | ❌ | ❌ | ❌ |
+| **Manage Academic Sessions & Semesters** | ✅ Full Access | ❌ | ❌ | ❌ |
+| **Create & Edit User Accounts** | ✅ All Roles | ✅ Dept Users | ❌ | ❌ |
+| **Suspend / Deactivate Accounts** | ✅ Yes | ❌ (§2.D Rule) | ❌ | ❌ |
+| **Create & Update Courses** | ✅ Yes | ✅ Dept Only | ❌ | ❌ |
+| **Allocate Courses to Lecturers** | ✅ Yes | ✅ Dept Only | ❌ | ❌ |
+| **Register Semester Courses** | ❌ | ❌ | ❌ | ✅ Self Only |
+| **View Course Class Rosters** | ✅ All | ✅ Dept Only | ✅ Assigned | ❌ |
+| **Enter CA & Exam Scores (Draft)** | ❌ | ❌ | ✅ Assigned | ❌ |
+| **Submit Results for Review** | ❌ | ❌ | ✅ Assigned | ❌ |
+| **Approve / Reject Department Results** | ✅ Oversight | ✅ Dept Only | ❌ (Strict) | ❌ |
+| **Reopen Approved/Rejected Results** | ✅ Yes | ✅ Dept Only | ❌ | ❌ |
+| **View Official Results & CGPA** | ✅ All | ✅ Dept Only | ✅ Assigned | ✅ Self Only |
+| **Print Course Registration Form** | ❌ | ❌ | ❌ | ✅ Self Only |
+| **Print Statement of Results** | ❌ | ❌ | ❌ | ✅ Self Only |
+| **View Institutional Audit Logs** | ✅ All | ✅ Dept Logs | ❌ | ❌ |
+
+---
+
 ## 🗄️ Database Architecture & Entity-Relationship (ER) Diagram
+
 
 UEMP utilizes **MongoDB (via Mongoose ODM)** with strongly-typed schemas, embedded sub-documents for role-specific attributes, and compound unique indexes enforcing institutional integrity (e.g., preventing duplicate course allocations, single registration sheets per semester, and conflict-free grading sheets).
 
@@ -292,32 +359,145 @@ erDiagram
 ## 🚀 Local Installation & Setup
 
 ### Prerequisites
-- Node.js (v18 or newer)
-- MongoDB (Local instance or MongoDB Atlas cluster)
-
-### 1. Backend Setup (`server/`)
-```bash
-cd server
-npm install
-npm run seed     # Seeds the database with all roles, courses, and sample workflows
-npm run dev      # Starts API server on http://localhost:5000
-```
-
-### 2. Frontend Setup (`client/`)
-```bash
-cd client
-npm install
-npm run dev      # Starts Next.js application on http://localhost:3000
-```
-
-### 3. Build for Production
-- **Server**: `npm run build` (outputs to `server/dist/`)
-- **Client**: `npm run build` (Next.js production bundle)
+- **Node.js**: v18.x or v20.x or newer
+- **npm**: v9+ (or pnpm/yarn)
+- **MongoDB**: Local MongoDB instance (`mongodb://localhost:27017`) or free MongoDB Atlas URI
 
 ---
 
-## 🛡️ Security Implementation
-- **JWT Authentication**: Short-lived access tokens with secure refresh tokens in HTTP cookies.
-- **Backend Route Guards**: Role-based middleware (`authorizeRoles`) and Department Scope filters on API endpoints.
-- **Data Integrity**: Input validation via Zod schemas and unique compound indices on MongoDB models.
-- **Audit Logging**: Traceability for all administrative and academic actions.
+### 1. Environment Configuration
+
+#### Backend Configuration (`server/.env`)
+Create a `.env` file in the `server/` directory:
+```env
+# Application Environment
+NODE_ENV=development
+PORT=5000
+API_PREFIX=/api/v1
+CORS_ORIGIN=http://localhost:3000
+
+# MongoDB Connection
+MONGO_URI=mongodb://127.0.0.1:27017/uemp_db
+
+# JWT Secrets & Expiration
+JWT_SECRET=uemp-education-portal-secure-jwt-access-secret-2026
+JWT_EXPIRES_IN=7d
+JWT_REFRESH_SECRET=uemp-education-portal-secure-jwt-refresh-secret-2026
+JWT_REFRESH_EXPIRES_IN=30d
+```
+
+#### Frontend Configuration (`client/.env.local`)
+Create a `.env.local` file in the `client/` directory:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
+```
+
+---
+
+### 2. Backend Setup & Seeding (`server/`)
+```bash
+cd server
+npm install
+
+# Seed default institutional structure, test accounts, courses, and sample workflows
+npm run seed
+
+# Start server in watch mode on http://localhost:5000
+npm run dev
+```
+
+> **Seeding Note**: `npm run seed` creates the active session (`2025/2026`), active semester (`FIRST`), Department of Computer Science, all 4 user roles with default passwords, course offerings (`CSC 201`, `CSC 203`, `CSC 205`), allocations, and pre-populated result sheets ready for immediate testing.
+
+---
+
+### 3. Frontend Setup (`client/`)
+```bash
+cd client
+npm install
+
+# Start Next.js client on http://localhost:3000
+npm run dev
+```
+
+---
+
+### 4. Production Build Verification
+To validate that both applications build without TypeScript or bundling issues:
+```bash
+# Server Build (Outputs compiled TypeScript to server/dist/)
+cd server && npm run build
+
+# Client Build (Compiles production Next.js application bundle)
+cd client && npm run build
+```
+
+---
+
+## 🛡️ Security Implementation Details
+
+1. **Authentication & Token Lifecycle**:
+   - Access tokens are cryptographically signed with HMAC-SHA256 and expire in 7 days.
+   - Long-lived refresh tokens are stored in the database (`Auth.refreshToken`) and transmitted via secure, HttpOnly, SameSite cookies to protect against Cross-Site Scripting (XSS) and token theft.
+   - On password change or explicit logout, refresh tokens are cleared in the database, immediately invalidating compromised sessions.
+2. **Password Security**:
+   - Passwords are salted and hashed using `bcryptjs` with an adaptive cost factor of 12 rounds before persistent storage. Plaintext passwords are never logged or stored.
+3. **Database-Level Multi-Tenancy & Scoping**:
+   - For `DEPARTMENT_ADMIN` requests, the server dynamically enforces departmental scoping. `req.user.department` is extracted from verified JWT claims and applied directly to MongoDB queries, guaranteeing that departmental administrators cannot access or modify academic data belonging to other departments.
+4. **Input Validation & Sanitization**:
+   - API endpoints validate payload structure and constraints using schema validators.
+   - Scores are mathematically bounded: Continuous Assessment (CA) is clamped between `0` and `40`, and Examination is clamped between `0` and `70`. Total scores strictly sum to `100`.
+   - String inputs undergo trimming and regex matching (e.g. valid email patterns and uppercase normalization for course codes).
+5. **Tamper-Evident Audit Logging**:
+   - High-consequence academic operations (score submissions, approvals, rejections, and reopening) generate immutable `ResultAuditLog` records containing the actor's ID, action type, previous status, new status, timestamp, and optional explanatory notes.
+
+---
+
+## 🧪 Evaluator Walkthrough & Testing Guide
+
+To rapidly verify the requirements within minutes, test the four core workflows in sequence using the provided test credentials:
+
+### Workflow 1: Student Course Registration
+1. Navigate to `http://localhost:3000/login` and log in as **Fresh Student** (`student.kemi@uemp.edu.ng` / `Password123!`).
+2. Notice the system automatically identifies her department (Computer Science) and academic level (100L).
+3. Navigate to **Course Registration**:
+   - Select available courses for the first semester.
+   - Observe total registered credit unit calculation.
+   - Click **Submit Registration**.
+4. Click **Print Summary** to generate the official printable course registration summary.
+
+### Workflow 2: Lecturer Score Entry & Submission
+1. Log in as **Lecturer** (`lecturer.smith@uemp.edu.ng` / `Password123!`).
+2. Navigate to **Assigned Courses**:
+   - Observe only courses assigned to Dr. Smith appear (`CSC 201`, `CSC 205`).
+3. Click on **CSC 201** to view the enrolled student roster.
+4. Enter CA scores (max 40) and Exam scores (max 70):
+   - Notice real-time computation of Total Score, Letter Grade (A-F), and Grade Point (0-5).
+5. Click **Save as Draft** &rarr; Notice status remains `DRAFT`.
+6. Click **Submit for Review** &rarr; Status updates to `SUBMITTED`. Once submitted, the scores lock to prevent tampering.
+
+### Workflow 3: Departmental Result Review & Approval
+1. Log in as **Department Admin** (`deptadmin.cs@uemp.edu.ng` / `Password123!`).
+2. Navigate to **Result Approvals**:
+   - Notice the pending submission queue displays `CSC 201` submitted by Dr. Smith.
+3. Click **Review Sheet** to inspect student scores and grade distributions.
+4. **Test Rejection**: Click **Return for Correction**, enter feedback (e.g. "Please verify CA score for Emeka"), and confirm.
+   - Log back in as Lecturer &rarr; Notice the sheet is reopened with the admin's remarks. Re-submit.
+5. **Test Approval**: Log back in as Department Admin &rarr; Click **Approve Results**.
+   - Status updates to `APPROVED`.
+   - An audit log entry is recorded with timestamp and reviewer ID.
+
+### Workflow 4: Student Transcript & Grade Visibility
+1. Log in as **Student** (`student.emeka@uemp.edu.ng` / `Password123!`).
+2. Navigate to **Academic Results**:
+   - Observe approved grades for the semester are now visible.
+   - View GPA calculation and Cumulative Grade Point Average (CGPA).
+3. Click **Print Statement of Results** to review the printable academic transcript.
+
+### Workflow 5: Super Admin Oversight
+1. Log in as **Super Admin** (`superadmin@uemp.edu.ng` / `Password123!`).
+2. Navigate to **User Management**:
+   - Filter by roles (Super Admin, Dept Admin, Lecturer, Student) or departments.
+   - Toggle account status (Active / Inactive) &rarr; Notice root accounts and self-accounts are locked against accidental lockout.
+3. Navigate to **Academic Structure** to inspect faculties, departments, sessions, and semesters.
+4. Navigate to **Audit Logs** to view the institutional activity log.
+
