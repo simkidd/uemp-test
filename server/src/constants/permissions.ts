@@ -1,0 +1,47 @@
+import { UserRole } from "./roles";
+
+export const ROLE_PERMISSIONS = {
+  [UserRole.SUPER_ADMIN]: [
+    "manage:faculties",
+    "manage:departments",
+    "manage:programmes",
+    "manage:sessions",
+    "manage:semesters",
+    "manage:users",
+    "manage:courses",
+    "view:all_results",
+    "override:results",
+    "view:audit_logs",
+    "view:system_reports",
+  ],
+  [UserRole.DEPARTMENT_ADMIN]: [
+    "manage:dept_students",
+    "manage:dept_lecturers",
+    "manage:dept_courses",
+    "allocate:courses",
+    "view:dept_registrations",
+    "review:dept_results",
+    "approve:dept_results",
+    "reject:dept_results",
+    "reopen:dept_results",
+    "view:dept_reports",
+  ],
+  [UserRole.LECTURER]: [
+    "view:assigned_courses",
+    "view:class_lists",
+    "enter:scores",
+    "save:draft_results",
+    "submit:results",
+    "view:submission_status",
+  ],
+  [UserRole.STUDENT]: [
+    "view:profile",
+    "update:profile",
+    "view:available_courses",
+    "register:courses",
+    "view:registered_courses",
+    "view:approved_results",
+    "download:registration_slip",
+    "download:result_statement",
+  ],
+};
