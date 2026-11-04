@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import { useAuthStore } from "@/stores/auth.store";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import {
@@ -46,6 +47,30 @@ export function StudentRegisterView() {
     semesterName: availData?.activeSemester?.name,
     isOpen: availData?.isRegistrationOpen,
   };
+
+  const facultyName =
+    (user?.department?.faculty as any)?.name ||
+    (user?.faculty as any)?.name ||
+    "Faculty of Natural & Applied Sciences";
+
+  const departmentName =
+    user?.department?.name ||
+    (typeof user?.department === "string" ? user.department : null) ||
+    "Department of Computer Science";
+
+  const programmeName =
+    (user?.studentProfile?.programme as any)?.name ||
+    (typeof user?.studentProfile?.programme === "string"
+      ? user.studentProfile.programme
+      : null) ||
+    "B.Sc. Computer Science";
+
+  const avatarUrl =
+    typeof user?.avatar === "object" && user?.avatar?.url
+      ? user.avatar.url
+      : typeof user?.avatar === "string" && user.avatar
+      ? user.avatar
+      : (user?.studentProfile as any)?.passportPhoto || null;
 
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -175,7 +200,7 @@ export function StudentRegisterView() {
       )}
 
       {/* Credit Units Indicator */}
-      <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs">
+      <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs py-0 gap-0 overflow-hidden">
         <CardContent className="p-4 sm:p-5 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5">
@@ -247,8 +272,8 @@ export function StudentRegisterView() {
       )}
 
       {/* Available Courses Table Card */}
-      <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs">
-        <CardHeader className="pb-3">
+      <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs overflow-hidden py-0 gap-0">
+        <CardHeader className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-base font-bold">
@@ -287,7 +312,7 @@ export function StudentRegisterView() {
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
@@ -295,7 +320,7 @@ export function StudentRegisterView() {
                   <th className="py-2.5 px-3 w-10 text-center">Select</th>
                   <th className="py-2.5 px-3">Course Code</th>
                   <th className="py-2.5 px-3">Course Title</th>
-                  <th className="py-2.5 px-3 text-center">Credit Units</th>
+                  <th className="py-2.5 px-3 text-center">Credit Unit</th>
                   <th className="py-2.5 px-3">Type</th>
                   <th className="py-2.5 px-3">Semester</th>
                   <th className="py-2.5 px-3 text-right">Status</th>
@@ -382,21 +407,40 @@ export function StudentRegisterView() {
           title="Official Course Registration Slip (CRF)"
           subtitle={`${sessionInfo.sessionName || "2025/2026 Session"} • ${sessionInfo.semesterName || "First Semester"}`}
         >
-          {/* Institutional Crest & Letterhead */}
-          <div className="text-center border-b border-zinc-300 pb-5 space-y-1">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-burgundy-700 text-white mb-2 shadow-xs">
-              <GraduationCap className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-black tracking-tight uppercase text-zinc-900">
-              LEAD WEB PRAXIS UNIVERSITY (UEMP)
-            </h3>
-            <p className="text-xs font-semibold text-zinc-600 uppercase tracking-wider">
-              OFFICE OF THE REGISTRAR &bull; ACADEMIC AFFAIRS DIVISION
-            </p>
-            <div className="pt-1">
-              <span className="inline-block px-3 py-1 rounded-full bg-zinc-100 text-zinc-800 text-[11px] font-bold uppercase tracking-wider border border-zinc-300">
-                OFFICIAL SEMESTER COURSE REGISTRATION FORM
-              </span>
+          {/* Institutional Crest, Letterhead & Passport Photo */}
+          <div className="border-b-2 border-zinc-900 pb-5 space-y-2">
+            <div className="flex items-center justify-between gap-4">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-burgundy-700 text-white shrink-0 shadow-xs">
+                <GraduationCap className="w-8 h-8" />
+              </div>
+              <div className="text-center flex-1 space-y-1">
+                <h3 className="text-lg sm:text-xl font-black tracking-tight uppercase text-zinc-900">
+                  LEAD WEB PRAXIS UNIVERSITY (UEMP)
+                </h3>
+                <p className="text-[11px] font-bold text-zinc-600 uppercase tracking-widest">
+                  OFFICE OF THE REGISTRAR &bull; ACADEMIC AFFAIRS DIVISION
+                </p>
+                <div className="pt-0.5">
+                  <span className="inline-block px-3 py-0.5 rounded-full bg-zinc-100 text-zinc-900 text-[10px] font-extrabold uppercase tracking-wider border border-zinc-300">
+                    OFFICIAL SEMESTER COURSE REGISTRATION FORM (CRF)
+                  </span>
+                </div>
+              </div>
+              {/* Student Passport Photo Frame */}
+              <div className="w-20 h-24 rounded border-2 border-zinc-400 bg-zinc-100 relative overflow-hidden shrink-0 shadow-2xs flex items-center justify-center text-center">
+                {avatarUrl ? (
+                  <Image
+                    src={avatarUrl}
+                    alt={user?.firstName || "Student"}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <span className="text-[9px] uppercase font-bold text-zinc-400 p-1">
+                    Passport Photo
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -417,13 +461,13 @@ export function StudentRegisterView() {
             <div>
               <span className="text-zinc-500 font-medium">Faculty:</span>
               <p className="font-semibold text-zinc-800">
-                {user?.faculty?.name || "Faculty of Science"}
+                {facultyName}
               </p>
             </div>
             <div>
               <span className="text-zinc-500 font-medium">Department &amp; Programme:</span>
               <p className="font-semibold text-zinc-800">
-                {user?.department?.name || "Computer Science"} (B.Sc.)
+                {departmentName} &bull; {programmeName}
               </p>
             </div>
             <div>
@@ -460,7 +504,7 @@ export function StudentRegisterView() {
                   <th className="py-2.5 px-3 w-10 text-center">S/N</th>
                   <th className="py-2.5 px-3">Course Code</th>
                   <th className="py-2.5 px-3">Course Title</th>
-                  <th className="py-2.5 px-3 text-center">Units</th>
+                  <th className="py-2.5 px-3 text-center">Credit Unit</th>
                   <th className="py-2.5 px-3">Status</th>
                   <th className="py-2.5 px-3 text-right">Verification</th>
                 </tr>
