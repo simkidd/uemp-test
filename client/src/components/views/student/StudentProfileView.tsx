@@ -196,19 +196,23 @@ export function StudentProfileView() {
               <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800">
                 <span className="text-zinc-500 block">Faculty:</span>
                 <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                  {user?.faculty?.name || "Faculty of Science"}
+                  {user?.faculty?.name || (user?.department?.faculty as any)?.name || "Faculty of Natural & Applied Sciences"}
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800">
                 <span className="text-zinc-500 block">Department:</span>
                 <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                  {user?.department?.name || "Computer Science"}
+                  {user?.department?.name || "Department of Computer Science"}
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800">
-                <span className="text-zinc-500 block">Programme:</span>
+                <span className="text-zinc-500 block">Degree Programme:</span>
                 <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                  B.Sc. Computer Science (4-Year Programme)
+                  {(user?.studentProfile?.programme as any)?.name ||
+                    (typeof user?.studentProfile?.programme === "string"
+                      ? user.studentProfile.programme
+                      : null) ||
+                    "B.Sc. Computer Science"}
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800">
