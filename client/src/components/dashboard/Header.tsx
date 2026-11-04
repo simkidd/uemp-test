@@ -18,10 +18,18 @@ import {
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useLogout } from "@/hooks/useLogout";
+import { ConfirmationModal } from "@/components/common/ConfirmationModal";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function Header({ onOpenMobile }: { onOpenMobile?: () => void }) {
   const { user } = useAuthStore();
-  const { handleLogout } = useLogout();
+  const {
+    isOpen: isLogoutOpen,
+    openLogoutModal,
+    closeLogoutModal,
+    isLoggingOut,
+    handleLogout,
+  } = useLogout();
   const { theme, setTheme } = useTheme();
 
   if (!user) return null;
@@ -53,56 +61,63 @@ export function Header({ onOpenMobile }: { onOpenMobile?: () => void }) {
           <span className="sr-only">Toggle theme</span>
         </Button>
 
-        {/* User Dropdown */}
+        {/* User Avatar Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2.5 p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-colors cursor-pointer outline-none">
-              <div className="w-8 h-8 rounded-lg bg-burgundy-700 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0">
-                {user.firstName[0]}
-                {user.lastName[0]}
-              </div>
-              <div className="hidden md:flex flex-col text-left leading-none">
-                <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 max-w-[120px] truncate">
-                  {user.firstName} {user.lastName}
-                </span>
-                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 truncate">
-                  {user.role === "STUDENT"
-                    ? user.studentProfile?.matricNumber || "Student"
-                    : ROLE_LABELS[user.role]}
-                </span>
-              </div>
+            <button
+              className="rounded-full ring-2 ring-transparent hover:ring-burgundy-300 dark:hover:ring-burgundy-800 transition-all cursor-pointer outline-none active:scale-95"
+              title={`${user.firstName} ${user.lastName}`}
+              aria-label="User profile menu"
+            >
+              <Avatar className="size-9 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+                <AvatarImage
+                  src={
+                    (user as any).avatar ||
+                    (user as any).studentProfile?.passportPhoto
+                  }
+                  alt={`${user.firstName} ${user.lastName}`}
+                />
+                <AvatarFallback className="bg-burgundy-700 text-white font-bold text-xs select-none">
+                  {user.firstName?.[0] || "U"}
+                  {user.lastName?.[0] || ""}
+                </AvatarFallback>
+              </Avatar>
             </button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" className="w-56 p-1.5">
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                  {user.firstName} {user.lastName}
-                </p>
-                <p className="text-xs text-zinc-500 truncate">{user.email}</p>
-                <div className="pt-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-burgundy-100 text-burgundy-800 dark:bg-burgundy-950 dark:text-burgundy-300">
-                    {ROLE_LABELS[user.role]}
-                  </span>
+          <DropdownMenuContent align="end" className="w-60 p-1.5">
+            <DropdownMenuLabel className="font-normal p-2">
+              <div className="flex items-center gap-2.5">
+                <div className="flex flex-col min-w-0">
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                    {user.firstName} {user.lastName}
+                  </p>
+                  <p className="text-xs text-zinc-500 truncate">{user.email}</p>
+                  {/* <div className="pt-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-burgundy-100 text-burgundy-800 dark:bg-burgundy-950 dark:text-burgundy-300">
+                      {ROLE_LABELS[user.role]}
+                    </span>
+                  </div> */}
                 </div>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
 
             {user.role === "STUDENT" && (
-              <DropdownMenuItem asChild>
-                <Link href="/student/profile" className="cursor-pointer">
-                  <User className="w-4 h-4 mr-2" />
-                  My Student Profile
-                </Link>
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/student/profile" className="cursor-pointer">
+                    <User className="w-4 h-4 mr-2" />
+                    My Student Profile
+                  </Link>
+                </DropdownMenuItem>
+              </>
             )}
 
             <DropdownMenuSeparator />
 
             <DropdownMenuItem
-              onClick={() => handleLogout()}
+              onClick={openLogoutModal}
               className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
             >
               <LogOut className="w-4 h-4 mr-2" />
@@ -111,6 +126,20 @@ export function Header({ onOpenMobile }: { onOpenMobile?: () => void }) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isLogoutOpen}
+        onClose={closeLogoutModal}
+        onConfirm={handleLogout}
+        title="Sign out of UEMP Portal?"
+        description="Are you sure you want to sign out? You will need to sign in again to access the portal."
+        confirmText="Yes, Log Out"
+        cancelText="Stay Signed In"
+        variant="destructive"
+        icon={LogOut}
+        isLoading={isLoggingOut}
+      />
     </header>
   );
 }

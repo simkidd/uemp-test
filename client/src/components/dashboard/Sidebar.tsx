@@ -3,11 +3,10 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, GraduationCap } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -19,10 +18,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 import { useAuthStore } from "@/stores/auth.store";
-import { useLogout } from "@/hooks/useLogout";
 import {
   getNavGroupsForRole,
   getAllHrefsForRole,
@@ -40,14 +36,6 @@ export function SidebarComponent({ onCloseMobile }: PortalSidebarProps) {
   const { isMobile, setOpenMobile } = useSidebar();
   const { user } = useAuthStore();
   const [mounted, setMounted] = useState(false);
-
-  const {
-    isOpen: isLogoutOpen,
-    openLogoutModal,
-    closeLogoutModal,
-    isLoggingOut,
-    handleLogout,
-  } = useLogout();
 
   useEffect(() => {
     setMounted(true);
@@ -101,23 +89,8 @@ export function SidebarComponent({ onCloseMobile }: PortalSidebarProps) {
     return false;
   };
 
-  const getIdentifierLabel = () => {
-    if (user?.role === "STUDENT") {
-      return user?.studentProfile?.matricNumber || "Matric: Pending";
-    }
-    if (user?.role === "LECTURER" || user?.role === "DEPARTMENT_ADMIN") {
-      return (
-        user?.staffProfile?.staffId ||
-        user?.department?.name ||
-        ROLE_LABELS[user.role]
-      );
-    }
-    return user?.role ? ROLE_LABELS[user.role] : "Administrator";
-  };
-
   return (
-    <>
-      <Sidebar
+    <Sidebar
         variant="floating"
         collapsible="offcanvas"
         className="border-none bg-transparent font-sans"
@@ -226,66 +199,8 @@ export function SidebarComponent({ onCloseMobile }: PortalSidebarProps) {
                 );
               })}
         </SidebarContent>
-
-        {/* Sidebar Footer: User Card */}
-        <SidebarFooter className="p-3 border-t border-zinc-200 dark:border-zinc-800">
-          {!mounted || !user ? (
-            <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-zinc-50 dark:bg-zinc-900/60">
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <Skeleton className="h-9 w-9 rounded-xl shrink-0" />
-                <div className="flex flex-col gap-1.5 min-w-0 flex-1">
-                  <Skeleton className="h-3.5 w-24" />
-                  <Skeleton className="h-2.5 w-16" />
-                </div>
-              </div>
-              <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
-            </div>
-          ) : (
-            <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800/60">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="h-9 w-9 rounded-xl bg-burgundy-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-                  {user?.firstName?.[0] || "U"}
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
-                    {user ? `${user.firstName} ${user.lastName}` : "User"}
-                  </span>
-                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
-                    {getIdentifierLabel()}
-                  </span>
-                </div>
-              </div>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={openLogoutModal}
-                title="Log Out"
-                className="h-8 w-8 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 shrink-0 rounded-lg cursor-pointer"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="sr-only">Log Out</span>
-              </Button>
-            </div>
-          )}
-        </SidebarFooter>
       </Sidebar>
-
-      {/* Logout Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={isLogoutOpen}
-        onClose={closeLogoutModal}
-        onConfirm={handleLogout}
-        title="Sign out of UEMP Portal?"
-        description="Are you sure you want to sign out? You will need to sign in again to access the portal."
-        confirmText="Yes, Log Out"
-        cancelText="Stay Signed In"
-        variant="destructive"
-        icon={LogOut}
-        isLoading={isLoggingOut}
-      />
-    </>
-  );
-}
+    );
+  }
 
 export { SidebarComponent as Sidebar, SidebarComponent as AdminSidebar };
