@@ -330,7 +330,16 @@ export class ResultController {
   approveResult = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
 
-    const result: any = await Result.findById(id);
+    let result: any = null;
+    try {
+      result = await Result.findById(id);
+    } catch {
+      // ignore
+    }
+    if (!result) {
+      result = await Result.findOne({ course: id, status: ResultStatus.SUBMITTED } as any);
+    }
+
     if (!result) {
       throw new AppError("Result not found.", 404);
     }
@@ -387,13 +396,24 @@ export class ResultController {
    */
   rejectResult = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
-    const { reason } = req.body;
+    const { reason, remarks } = req.body;
+    const feedback = reason || remarks;
 
-    if (!reason || !reason.trim()) {
+    if (!feedback || !feedback.trim()) {
       throw new AppError("Please provide a rejection reason/feedback for the lecturer.", 400);
     }
 
-    const result: any = await Result.findById(id);
+    let result: any = null;
+    try {
+      result = await Result.findById(id);
+    } catch {
+      // ignore
+    }
+    if (!result) {
+      result = await Result.findOne({ course: id, status: ResultStatus.SUBMITTED } as any);
+    }
+
+
     if (!result) {
       throw new AppError("Result not found.", 404);
     }
@@ -410,9 +430,10 @@ export class ResultController {
     result.status = ResultStatus.REJECTED;
     result.reviewedAt = new Date();
     result.reviewedBy = req.user!._id;
-    result.rejectionReason = reason.trim();
+    result.rejectionReason = feedback.trim();
     result.isReopened = true;
     await result.save();
+
 
     // Audit log
     await ResultAuditLog.create({

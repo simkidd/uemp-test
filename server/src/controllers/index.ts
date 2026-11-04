@@ -5,3 +5,4 @@ export * from "./registration.controller";
 export * from "./result.controller";
 export * from "./report.controller";
 export * from "./admin.controller";
+

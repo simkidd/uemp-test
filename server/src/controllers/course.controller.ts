@@ -211,6 +211,31 @@ export class CourseController {
   });
 
   /**
+   * Delete course allocation
+   */
+  deleteAllocation = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    const allocation = await CourseAllocation.findById(id).populate("course");
+    if (!allocation) {
+      throw new AppError("Allocation not found.", 404);
+    }
+
+    if (
+      req.user!.role === UserRole.DEPARTMENT_ADMIN &&
+      (allocation.course as any)?.department?.toString() !== req.user!.department?.toString()
+    ) {
+      throw new AppError(
+        "Access denied. Cannot delete allocation for course outside your department.",
+        403,
+      );
+    }
+
+    await CourseAllocation.findByIdAndDelete(id);
+    return sendSuccess(res, null, "Allocation removed successfully");
+  });
+
+
+  /**
    * Get courses assigned to currently logged-in lecturer (Workflow 2 step 2)
    */
   getLecturerAssignedCourses = asyncHandler(

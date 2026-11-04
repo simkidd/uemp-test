@@ -18,3 +18,4 @@ apiRouter.use("/results", resultRoutes);
 apiRouter.use("/reports", reportRoutes);
 
 export { apiRouter };
+

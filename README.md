@@ -79,20 +79,215 @@ All test accounts use the default password: **`Password123!`**
 
 ---
 
-## 🗄️ Database Architecture & Data Models
+## 🗄️ Database Architecture & Entity-Relationship (ER) Diagram
 
-- **`User`**: Core identity with embedded `studentProfile` or `lecturerProfile`, department and faculty references.
-- **`Auth`**: Credentials, hashed passwords (bcrypt), refresh tokens, and active session tracking.
-- **`Faculty` & `Department`**: Institutional hierarchy.
-- **`Programme`**: Degree types (e.g. B.Sc., B.Eng.) linked to departments.
-- **`AcademicSession` & `Semester`**: Timeline governance (active session/semester flags).
-- **`Course`**: Course code, title, units, level, and semester.
-- **`CourseAllocation`**: Maps lecturers to courses within an active academic session.
-- **`CourseRegistration`**: Student registrations with course list and credit unit tracking.
-- **`Result`**: Course scores, student grades, status (`DRAFT`, `SUBMITTED`, `APPROVED`), and reviewer stamps.
-- **`ResultAuditLog`**: Complete audit trail recording actors, timestamps, and status transitions.
+UEMP utilizes **MongoDB (via Mongoose ODM)** with strongly-typed schemas, embedded sub-documents for role-specific attributes, and compound unique indexes enforcing institutional integrity (e.g., preventing duplicate course allocations, single registration sheets per semester, and conflict-free grading sheets).
+
+### 📊 Entity-Relationship (ER) Diagram
+
+```mermaid
+erDiagram
+    FACULTY ||--o{ DEPARTMENT : "houses"
+    DEPARTMENT ||--o{ PROGRAMME : "administers"
+    DEPARTMENT ||--o{ USER : "employs / enrolls"
+    DEPARTMENT ||--o{ COURSE : "hosts"
+    
+    USER ||--|| AUTH : "authenticates"
+    USER ||--o{ COURSE_ALLOCATION : "assigned lecturer"
+    USER ||--o{ COURSE_REGISTRATION : "registered student"
+    USER ||--o{ RESULT : "submits as lecturer"
+    USER ||--o{ RESULT_AUDIT_LOG : "audited actor"
+
+    ACADEMIC_SESSION ||--o{ SEMESTER : "comprises"
+    ACADEMIC_SESSION ||--o{ COURSE_ALLOCATION : "session context"
+    ACADEMIC_SESSION ||--o{ COURSE_REGISTRATION : "academic term"
+    ACADEMIC_SESSION ||--o{ RESULT : "grading period"
+
+    SEMESTER ||--o{ COURSE_ALLOCATION : "semester context"
+    SEMESTER ||--o{ COURSE_REGISTRATION : "registration term"
+    SEMESTER ||--o{ RESULT : "semester results"
+
+    COURSE ||--o{ COURSE_ALLOCATION : "allocated"
+    COURSE ||--o{ RESULT : "evaluated in"
+    COURSE ||--o{ RESULT_AUDIT_LOG : "audit target"
+
+    RESULT ||--o{ RESULT_AUDIT_LOG : "status change trail"
+
+    AUTH {
+        ObjectId _id PK
+        ObjectId user FK "references User"
+        string password "bcrypt hash"
+        string refreshToken
+        string resetPasswordToken
+        Date resetPasswordExpires
+    }
+
+    USER {
+        ObjectId _id PK
+        ObjectId auth FK "references Auth"
+        string email UK "unique lowercase"
+        string role "SUPER_ADMIN | DEPARTMENT_ADMIN | LECTURER | STUDENT"
+        string firstName
+        string lastName
+        string otherName
+        string phone
+        ObjectId department FK "references Department"
+        ObjectId faculty FK "references Faculty"
+        boolean isActive "account state flag"
+    }
+
+    FACULTY {
+        ObjectId _id PK
+        string name "e.g. Faculty of Science"
+        string code UK "e.g. SCI"
+        boolean isActive
+    }
+
+    DEPARTMENT {
+        ObjectId _id PK
+        string name "e.g. Computer Science"
+        string code UK "e.g. CSC"
+        ObjectId faculty FK "references Faculty"
+        boolean isActive
+    }
+
+    PROGRAMME {
+        ObjectId _id PK
+        string name "e.g. B.Sc. Computer Science"
+        string code UK "e.g. CSC_BSC"
+        ObjectId department FK "references Department"
+        string degreeAwarded "e.g. B.Sc."
+        number durationYears "e.g. 4"
+        boolean isActive
+    }
+
+    ACADEMIC_SESSION {
+        ObjectId _id PK
+        string name UK "e.g. 2025/2026"
+        Date startDate
+        Date endDate
+        boolean isCurrent "flag active session"
+    }
+
+    SEMESTER {
+        ObjectId _id PK
+        ObjectId session FK "references AcademicSession"
+        string name "FIRST | SECOND"
+        Date startDate
+        Date endDate
+        boolean isCurrent "flag active semester"
+        boolean isRegistrationOpen "registration lock"
+    }
+
+    COURSE {
+        ObjectId _id PK
+        string code UK "e.g. CSC 201"
+        string title "e.g. Computer Programming I"
+        number creditUnit "1 to 6"
+        ObjectId department FK "references Department"
+        Array programmes "Programme ObjectIds"
+        number level "100 to 800"
+        string semester "FIRST | SECOND"
+        string description
+        boolean isActive
+    }
+
+    COURSE_ALLOCATION {
+        ObjectId _id PK
+        ObjectId course FK "references Course"
+        ObjectId lecturer FK "references User (Lecturer)"
+        ObjectId session FK "references AcademicSession"
+        ObjectId semester FK "references Semester"
+        ObjectId assignedBy FK "references User (Admin)"
+    }
+
+    COURSE_REGISTRATION {
+        ObjectId _id PK
+        ObjectId student FK "references User (Student)"
+        ObjectId session FK "references AcademicSession"
+        ObjectId semester FK "references Semester"
+        ObjectId department FK "references Department"
+        ObjectId programme FK "references Programme"
+        number level "100 to 800"
+        Array courses "registered course items"
+        number totalCreditUnits "sum of units"
+        string status "REGISTERED | APPROVED"
+    }
+
+    RESULT {
+        ObjectId _id PK
+        ObjectId course FK "references Course"
+        ObjectId session FK "references AcademicSession"
+        ObjectId semester FK "references Semester"
+        ObjectId department FK "references Department"
+        ObjectId lecturer FK "references User (Lecturer)"
+        string status "DRAFT | SUBMITTED | APPROVED | REJECTED"
+        Array scores "student CA + Exam grades"
+        Date submittedAt
+        Date reviewedAt
+        ObjectId reviewedBy FK "references User (Dept Admin)"
+        string rejectionReason
+        boolean isReopened
+    }
+
+    RESULT_AUDIT_LOG {
+        ObjectId _id PK
+        ObjectId result FK "references Result"
+        ObjectId course FK "references Course"
+        ObjectId actor FK "references User"
+        string action "SUBMITTED | APPROVED | REJECTED | REOPENED"
+        string previousStatus
+        string newStatus
+        string comments
+        Date createdAt "immutable timestamp"
+    }
+```
 
 ---
+
+### 📑 Detailed Schema Specifications
+
+#### 1. Identity & Access Governance
+| Collection | Field | Type | Constraint | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **`User`** | `_id` | `ObjectId` | Primary Key | System user identifier |
+| | `email` | `String` | Unique, Required | University email address |
+| | `role` | `Enum` | Required | `SUPER_ADMIN`, `DEPARTMENT_ADMIN`, `LECTURER`, `STUDENT` |
+| | `firstName` / `lastName` | `String` | Required | Legal names |
+| | `department` | `ObjectId` | Ref &rarr; Department | Departmental affiliation (null for Super Admin) |
+| | `faculty` | `ObjectId` | Ref &rarr; Faculty | Faculty affiliation |
+| | `studentProfile` | `Subdoc` | Optional | `{ matricNumber, programme, level, entrySession }` |
+| | `lecturerProfile` | `Subdoc` | Optional | `{ staffId, title, designation }` |
+| | `isActive` | `Boolean` | Default: `true` | Account suspension toggle |
+| **`Auth`** | `user` | `ObjectId` | Ref &rarr; User, Unique | 1:1 association to User |
+| | `password` | `String` | Required | Encrypted bcrypt password hash |
+| | `refreshToken` | `String` | Indexed | Revocable JWT session token |
+
+#### 2. Institutional Hierarchy & Academic Calendar
+| Collection | Key Fields | References | Business Rules / Constraints |
+| :--- | :--- | :--- | :--- |
+| **`Faculty`** | `name`, `code`, `isActive` | None | `code` is unique uppercase (e.g. `SCI`, `ENG`) |
+| **`Department`** | `name`, `code`, `faculty`, `isActive` | `Faculty` | Belongs to a parent faculty; `code` is unique |
+| **`Programme`** | `name`, `code`, `department`, `degreeAwarded`, `durationYears` | `Department` | e.g. B.Sc. Computer Science (4 years) |
+| **`AcademicSession`** | `name`, `startDate`, `endDate`, `isCurrent` | None | Exactly one session marked `isCurrent: true` at a time |
+| **`Semester`** | `session`, `name` (`FIRST`/`SECOND`), `isCurrent`, `isRegistrationOpen` | `AcademicSession` | Controls student registration window |
+
+#### 3. Course Management & Allocations
+| Collection | Key Fields | References | Unique Indexes / Invariants |
+| :--- | :--- | :--- | :--- |
+| **`Course`** | `code`, `title`, `creditUnit` (1-6), `level` (100-800), `semester` | `Department`, `Programme[]` | `code` unique (e.g. `CSC 201`). Scoped to department |
+| **`CourseAllocation`** | `course`, `lecturer`, `session`, `semester`, `assignedBy` | `Course`, `User`, `AcademicSession`, `Semester` | **Compound Unique**: `{ course: 1, session: 1, semester: 1 }` (one lecturer per course/term) |
+| **`CourseRegistration`** | `student`, `session`, `semester`, `department`, `courses[]`, `totalCreditUnits` | `User`, `AcademicSession`, `Semester`, `Course` | **Compound Unique**: `{ student: 1, session: 1, semester: 1 }` (max 1 registration sheet per student/term) |
+
+#### 4. Examination, Grading & Audit Log
+| Collection | Key Fields | References | State Lifecycle & Validation |
+| :--- | :--- | :--- | :--- |
+| **`Result`** | `course`, `session`, `semester`, `department`, `lecturer`, `status`, `scores[]`, `reviewedBy` | `Course`, `User`, `AcademicSession`, `Semester` | **Compound Unique**: `{ course: 1, session: 1, semester: 1 }`<br/>Status: `DRAFT` &rarr; `SUBMITTED` &rarr; `APPROVED` or `REJECTED` |
+| **`scores[]`** *(Subdoc)* | `student`, `caScore` (0-40), `examScore` (0-70), `totalScore` (0-100), `grade`, `gradePoint` | `User` (Student) | Auto-graded: 70-100 &rarr; A(5), 60-69 &rarr; B(4), 50-59 &rarr; C(3), 45-49 &rarr; D(2), 40-44 &rarr; E(1), 0-39 &rarr; F(0) |
+| **`ResultAuditLog`** | `result`, `course`, `actor`, `action`, `previousStatus`, `newStatus`, `comments` | `Result`, `Course`, `User` | **Append-only immutable log** capturing every submission, approval, rejection, and reopening with timestamps |
+
+---
+
 
 ## 🚀 Local Installation & Setup
 

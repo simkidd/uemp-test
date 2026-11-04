@@ -313,7 +313,7 @@ export class AdminController {
    * List users with optional role, department, and search filters
    */
   getUsers = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const { role, departmentId, department, search, status, isActive } = req.query;
+    const { role, departmentId, department, search, status, isActive, level } = req.query;
 
     const query: any = {};
 
@@ -329,6 +329,10 @@ export class AdminController {
 
     if (role && Object.values(UserRole).includes(role as UserRole)) {
       query.role = role;
+    }
+
+    if (level) {
+      query["studentProfile.level"] = Number(level);
     }
 
     if (isActive !== undefined) {

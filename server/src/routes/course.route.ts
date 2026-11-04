@@ -27,6 +27,13 @@ router.post(
   courseController.allocateCourse,
 );
 
+router.delete(
+  "/allocations/:id",
+  authorize(UserRole.SUPER_ADMIN, UserRole.DEPARTMENT_ADMIN),
+  courseController.deleteAllocation,
+);
+
+
 // Courses list
 router.get("/", courseController.getCourses);
 router.get("/:id", courseController.getCourseById);
