@@ -32,6 +32,14 @@ router.post(
   resultController.saveOrSubmitResult,
 );
 
+// Results query list (by course, session, etc.)
+router.get(
+  "/",
+  authorize(UserRole.LECTURER, UserRole.DEPARTMENT_ADMIN, UserRole.SUPER_ADMIN),
+  resultController.getResults,
+);
+
+
 // Workflow 3: Department Admin & Super Admin review & approval
 router.get(
   "/pending",

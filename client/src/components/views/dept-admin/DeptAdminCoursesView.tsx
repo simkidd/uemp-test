@@ -34,7 +34,7 @@ export function DeptAdminCoursesView() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [code, setCode] = useState("");
   const [title, setTitle] = useState("");
-  const [creditUnits, setCreditUnits] = useState(3);
+  const [creditUnit, setCreditUnit] = useState(3);
   const [level, setLevel] = useState<100 | 200 | 300 | 400 | 500 | 600>(100);
   const [semester, setSemester] = useState<"First Semester" | "Second Semester">("First Semester");
   const [isElective, setIsElective] = useState(false);
@@ -51,12 +51,14 @@ export function DeptAdminCoursesView() {
       await createMutation.mutateAsync({
         code: code.trim().toUpperCase(),
         title: title.trim(),
-        creditUnits: Number(creditUnits),
+        creditUnit: Number(creditUnit),
         level: level,
         semester,
         isElective,
         description: description.trim(),
       });
+
+
 
       toast.success("Course Created", {
         description: `${code.toUpperCase()} added to curriculum catalog.`,
@@ -163,8 +165,14 @@ export function DeptAdminCoursesView() {
                       <td className="py-3 px-4 font-medium text-zinc-800 dark:text-zinc-200">
                         {c.title}
                       </td>
-                      <td className="py-3 px-4 text-center font-bold">{c.creditUnits} Units</td>
+                      <td className="py-3 px-4 text-center font-bold">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">
+                          {c.creditUnit} {c.creditUnit === 1 ? "Unit" : "Units"}
+                        </span>
+                      </td>
+
                       <td className="py-3 px-4">{c.level} Level</td>
+
                       <td className="py-3 px-4">{c.semester}</td>
                       <td className="py-3 px-4">
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-medium">
@@ -217,12 +225,13 @@ export function DeptAdminCoursesView() {
                     type="number"
                     min={1}
                     max={6}
-                    value={creditUnits}
-                    onChange={(e) => setCreditUnits(Number(e.target.value))}
+                    value={creditUnit}
+                    onChange={(e) => setCreditUnit(Number(e.target.value))}
                     required
                     className="h-8 text-xs"
                   />
                 </div>
+
               </div>
 
               <div className="space-y-1.5">

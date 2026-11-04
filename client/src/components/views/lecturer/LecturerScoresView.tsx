@@ -59,8 +59,9 @@ export function LecturerScoresView() {
                     {item.course?.code}
                   </span>
                   <Badge variant="outline" className="text-xs">
-                    {item.course?.creditUnits} Units
+                    {item.course?.creditUnit} Units
                   </Badge>
+
                 </div>
                 <CardTitle className="text-base font-bold mt-2 text-zinc-900 dark:text-zinc-100">
                   {item.course?.title}

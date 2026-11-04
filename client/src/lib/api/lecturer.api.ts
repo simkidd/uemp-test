@@ -9,19 +9,28 @@ export interface ScoreEntryPayload {
 
 export const lecturerApi = {
   getAssignedCourses: async (): Promise<ICourseAllocation[]> => {
-    const res = await api.get("/lecturer/courses");
+    const res = await api.get("/courses/assigned");
     return res.data?.data || [];
   },
 
   getCourseStudents: async (
     courseId: string,
-  ): Promise<{ course: ICourse; students: IUser[] }> => {
-    const res = await api.get(`/lecturer/courses/${courseId}/students`);
+  ): Promise<{
+    course: ICourse;
+    students: IUser[];
+    resultStatus?: string;
+    resultId?: string;
+    isReopened?: boolean;
+    rejectionReason?: string;
+  }> => {
+    const res = await api.get(`/results/course/${courseId}/students`);
     return res.data?.data;
   },
 
   getCourseResults: async (courseId: string): Promise<IResult[]> => {
-    const res = await api.get(`/lecturer/results?course=${courseId}`);
+    const res = await api.get("/results", {
+      params: { course: courseId },
+    });
     return res.data?.data || [];
   },
 
@@ -29,9 +38,10 @@ export const lecturerApi = {
     courseId: string,
     results: ScoreEntryPayload[],
   ): Promise<IResult[]> => {
-    const res = await api.post("/lecturer/results/draft", {
+    const res = await api.post("/results/save-or-submit", {
       courseId,
-      results,
+      scores: results,
+      action: "DRAFT",
     });
     return res.data?.data || [];
   },
@@ -40,10 +50,12 @@ export const lecturerApi = {
     courseId: string,
     results: ScoreEntryPayload[],
   ): Promise<IResult[]> => {
-    const res = await api.post("/lecturer/results/submit", {
+    const res = await api.post("/results/save-or-submit", {
       courseId,
-      results,
+      scores: results,
+      action: "SUBMIT",
     });
     return res.data?.data || [];
   },
 };
+

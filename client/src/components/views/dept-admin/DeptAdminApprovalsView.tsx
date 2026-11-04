@@ -191,12 +191,14 @@ export function DeptAdminApprovalsView() {
                         {sub.course.title}
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        {sub.course.level} Level &bull; {sub.course.creditUnits}{" "}
+                        {sub.course.level} Level &bull; {sub.course.creditUnit ?? 0}{" "}
                         Units &bull; {sub.results.length} Candidates Submitted
                         {sub.submittedAt && (
                           <> &bull; Submitted {formatRelativeTime(sub.submittedAt)}</>
                         )}
                       </CardDescription>
+
+
                     </div>
                   </div>
 

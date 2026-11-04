@@ -62,8 +62,16 @@ export class CourseController {
    * Create course (Super Admin or Dept Admin for own dept)
    */
   createCourse = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const { code, title, creditUnit, departmentId, programmeIds, level, semester, description } =
-      req.body;
+    const {
+      code,
+      title,
+      creditUnit,
+      departmentId,
+      programmeIds,
+      level,
+      semester,
+      description,
+    } = req.body;
 
     let targetDeptId = departmentId;
     if (req.user!.role === UserRole.DEPARTMENT_ADMIN) {
@@ -101,8 +109,16 @@ export class CourseController {
    */
   updateCourse = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
-    const { code, title, creditUnit, programmeIds, level, semester, description, isActive } =
-      req.body;
+    const {
+      code,
+      title,
+      creditUnit,
+      programmeIds,
+      level,
+      semester,
+      description,
+      isActive,
+    } = req.body;
 
     const course = await Course.findById(id);
     if (!course) {
@@ -118,9 +134,10 @@ export class CourseController {
 
     if (code) course.code = code.trim().toUpperCase();
     if (title) course.title = title.trim();
-    if (creditUnit) course.creditUnit = Number(creditUnit);
+    if (creditUnit !== undefined) course.creditUnit = Number(creditUnit);
     if (programmeIds) course.programmes = programmeIds;
     if (level) course.level = Number(level) as any;
+
     if (semester) course.semester = semester;
     if (description !== undefined) course.description = description;
     if (isActive !== undefined) course.isActive = isActive;
@@ -130,14 +147,35 @@ export class CourseController {
     return sendSuccess(res, course, "Course updated successfully");
   });
 
+
   /**
    * Allocate course to lecturer for session & semester
    */
   allocateCourse = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { courseId, lecturerId, sessionId, semesterId } = req.body;
 
-    if (!courseId || !lecturerId || !sessionId || !semesterId) {
-      throw new AppError("Course, lecturer, session, and semester IDs are required.", 400);
+    let targetSessionId = sessionId;
+    let targetSemesterId = semesterId;
+
+    if (!targetSessionId || !targetSemesterId) {
+      const activeSession = await AcademicSession.findOne({ isCurrent: true });
+      if (activeSession) {
+        targetSessionId = targetSessionId || activeSession._id;
+        const activeSemester = await Semester.findOne({
+          session: activeSession._id,
+          isCurrent: true,
+        });
+        if (activeSemester) {
+          targetSemesterId = targetSemesterId || activeSemester._id;
+        }
+      }
+    }
+
+    if (!courseId || !lecturerId || !targetSessionId || !targetSemesterId) {
+      throw new AppError(
+        "Course and lecturer are required, along with an active session and semester.",
+        400,
+      );
     }
 
     const [course, lecturer] = await Promise.all([
@@ -159,11 +197,12 @@ export class CourseController {
     }
 
     const allocation = await CourseAllocation.findOneAndUpdate(
-      { course: courseId, session: sessionId, semester: semesterId },
+      { course: courseId, session: targetSessionId, semester: targetSemesterId },
       {
         lecturer: lecturerId,
         assignedBy: req.user!._id,
       },
+
       { upsert: true, new: true, runValidators: true },
     )
       .populate("course", "code title creditUnit")

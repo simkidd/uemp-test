@@ -99,6 +99,7 @@ export class ResultController {
         );
 
         return {
+          _id: studentObj._id,
           studentId: studentObj._id,
           matricNumber: studentObj.studentProfile?.matricNumber || "N/A",
           firstName: studentObj.firstName,
@@ -134,9 +135,27 @@ export class ResultController {
    * Lecturer saves scores as DRAFT or SUBMITS for departmental review
    */
   saveOrSubmitResult = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const { courseId, sessionId, semesterId, scores, action } = req.body;
+    const { courseId, sessionId, semesterId, scores, results, action } = req.body;
+    const scoresList = Array.isArray(scores) ? scores : Array.isArray(results) ? results : [];
 
-    if (!courseId || !sessionId || !semesterId || !Array.isArray(scores)) {
+    let targetSessionId = sessionId;
+    let targetSemesterId = semesterId;
+
+    if (!targetSessionId || !targetSemesterId) {
+      const activeSession = await AcademicSession.findOne({ isCurrent: true });
+      if (activeSession) {
+        targetSessionId = targetSessionId || activeSession._id.toString();
+        const activeSemester = await Semester.findOne({
+          session: activeSession._id,
+          isCurrent: true,
+        });
+        if (activeSemester) {
+          targetSemesterId = targetSemesterId || activeSemester._id.toString();
+        }
+      }
+    }
+
+    if (!courseId || !targetSessionId || !targetSemesterId || !Array.isArray(scoresList)) {
       throw new AppError("Course ID, session, semester, and scores are required.", 400);
     }
 
@@ -152,9 +171,9 @@ export class ResultController {
       const allocation = await CourseAllocation.findOne({
         course: courseId,
         lecturer: req.user!._id,
-        session: sessionId,
-        semester: semesterId,
-      });
+        session: targetSessionId,
+        semester: targetSemesterId,
+      } as any);
 
       if (!allocation) {
         throw new AppError(
@@ -173,9 +192,9 @@ export class ResultController {
     // Check existing result
     let result: any = await Result.findOne({
       course: courseId,
-      session: sessionId,
-      semester: semesterId,
-    });
+      session: targetSessionId,
+      semester: targetSemesterId,
+    } as any);
 
     if (result) {
       if (result.status === ResultStatus.SUBMITTED && !result.isReopened) {
@@ -194,14 +213,14 @@ export class ResultController {
     }
 
     // Validate and compute scores
-    const computedScores = scores.map((s: any) => {
+    const computedScores = scoresList.map((s: any) => {
       const caScore = Math.max(0, Math.min(40, Number(s.caScore) || 0));
       const examScore = Math.max(0, Math.min(70, Number(s.examScore) || 0));
       const totalScore = Math.round((caScore + examScore) * 100) / 100;
       const { grade, gradePoint } = calculateGradeAndPoint(totalScore);
 
       return {
-        student: s.studentId || s.student,
+        student: s.studentId || s.student || s._id,
         caScore,
         examScore,
         totalScore,
@@ -217,8 +236,8 @@ export class ResultController {
     if (!result) {
       result = new Result({
         course: course._id,
-        session: sessionId,
-        semester: semesterId,
+        session: targetSessionId,
+        semester: targetSemesterId,
         department: course.department,
         lecturer: req.user!._id,
         status: newStatus,
@@ -258,6 +277,35 @@ export class ResultController {
         : "Result draft saved successfully.",
     );
   });
+
+  /**
+   * Get results list (filter by course, session, semester, etc.)
+   */
+  getResults = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { course, courseId, sessionId, semesterId } = req.query;
+    const targetCourse = (course || courseId) as string;
+    const query: any = {};
+
+    if (targetCourse) query.course = targetCourse;
+    if (sessionId) query.session = sessionId;
+    if (semesterId) query.semester = semesterId;
+
+    if (req.user!.role === UserRole.LECTURER) {
+      query.lecturer = req.user!._id;
+    } else if (req.user!.role === UserRole.DEPARTMENT_ADMIN) {
+      query.department = req.user!.department;
+    }
+
+    const results = await Result.find(query)
+      .populate("course", "code title creditUnit level")
+      .populate("session", "name")
+      .populate("semester", "name")
+      .populate("lecturer", "firstName lastName email")
+      .populate("scores.student", "firstName lastName studentProfile email");
+
+    return sendSuccess(res, results, "Results retrieved successfully");
+  });
+
 
   /**
    * Workflow 3 Step 2:

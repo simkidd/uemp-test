@@ -5,9 +5,9 @@ export interface ICourse {
   _id: string;
   code: string; // e.g. "CSC101"
   title: string;
-  creditUnits?: number;
-  creditUnit?: number;
+  creditUnit: number;
   level: 100 | 200 | 300 | 400 | 500 | 600;
+
   semester: 'First Semester' | 'Second Semester';
   department: IDepartment | string;
   isElective?: boolean;

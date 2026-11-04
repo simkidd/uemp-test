@@ -74,31 +74,38 @@ export function LecturerScoreEntryView({ courseId }: { courseId: string }) {
   useEffect(() => {
     if (courseStudentsData) {
       const studentsList = courseStudentsData.students || [];
-      const initialRows: StudentScoreRow[] = studentsList.map((student: IUser) => {
-        const existing = existingResults.find((r: IResult) => {
-          const sId = typeof r.student === "object" ? r.student._id : r.student;
-          return sId === student._id;
+      const initialRows: StudentScoreRow[] = studentsList.map((student: any) => {
+        const studentId = student._id || student.studentId;
+        const existing = existingResults.find((r: any) => {
+          const sId = typeof r.student === "object" ? r.student?._id : (r.student || r.studentId);
+          return sId === studentId;
         });
-        const ca = existing ? existing.caScore : "";
-        const exam = existing ? existing.examScore : "";
+
+        const ca = existing?.caScore !== undefined ? existing.caScore : (student.caScore !== undefined ? student.caScore : "");
+        const exam = existing?.examScore !== undefined ? existing.examScore : (student.examScore !== undefined ? student.examScore : "");
         const total = (Number(ca) || 0) + (Number(exam) || 0);
 
         return {
-          studentId: student._id,
-          studentName: `${student.firstName} ${student.lastName}`,
-          matricNumber: student.studentProfile?.matricNumber || "UEMP/Pending",
+          studentId: studentId,
+          studentName: student.studentName || `${student.firstName || ""} ${student.lastName || ""}`.trim() || "Student",
+          matricNumber: student.studentProfile?.matricNumber || student.matricNumber || "UEMP/Pending",
           caScore: ca,
           examScore: exam,
           totalScore: total,
-          grade: existing ? existing.grade : ca !== "" || exam !== "" ? computeGrade(total) : "-",
-          status: existing?.status || "DRAFT",
-          rejectionRemarks: existing?.rejectionRemarks,
+          grade: existing?.grade || (student.grade && student.grade !== "-" ? student.grade : (ca !== "" || exam !== "" ? computeGrade(total) : "-")),
+          status: existing?.status || (courseStudentsData.resultStatus as ResultStatus) || "DRAFT",
+          rejectionRemarks: existing?.rejectionRemarks || courseStudentsData.rejectionReason,
         };
       });
 
       setRows(initialRows);
 
-      if (existingResults.length > 0) {
+      if (courseStudentsData.resultStatus && courseStudentsData.resultStatus !== "NOT_STARTED") {
+        setOverallStatus(courseStudentsData.resultStatus as ResultStatus);
+        if (courseStudentsData.resultStatus === "REJECTED") {
+          setRejectionRemarks(courseStudentsData.rejectionReason || "");
+        }
+      } else if (existingResults.length > 0) {
         const firstStatus = existingResults[0].status;
         setOverallStatus(firstStatus);
         if (firstStatus === "REJECTED") {
@@ -107,6 +114,7 @@ export function LecturerScoreEntryView({ courseId }: { courseId: string }) {
       }
     }
   }, [courseStudentsData, existingResults]);
+
 
   const handleScoreChange = (
     index: number,
@@ -246,8 +254,9 @@ export function LecturerScoreEntryView({ courseId }: { courseId: string }) {
             </Badge>
           </div>
           <p className="text-xs text-zinc-500">
-            {course?.creditUnits} Credit Units &bull; {course?.level} Level &bull; {rows.length} Enrolled Students
+            {course?.creditUnit} Credit Units &bull; {course?.level} Level &bull; {rows.length} Enrolled Students
           </p>
+
         </div>
 
         <div className="flex items-center gap-2">

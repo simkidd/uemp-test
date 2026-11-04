@@ -62,7 +62,8 @@ export function StudentRegisterView() {
     }
   }, [registration]);
 
-  const getCourseUnits = (c: ICourse) => c.creditUnit ?? c.creditUnits ?? 0;
+  const getCourseUnits = (c: ICourse) => c.creditUnit ?? 0;
+
 
   const totalSelectedUnits = availableCourses
     .filter((c) => selectedCourseIds.includes(c._id))
@@ -474,8 +475,9 @@ export function StudentRegisterView() {
                         <td className="py-2 px-3 font-mono font-bold text-burgundy-800">{c.code}</td>
                         <td className="py-2 px-3 font-medium text-zinc-900">{c.title}</td>
                         <td className="py-2 px-3 text-center font-bold">
-                          {c.creditUnit ?? c.creditUnits ?? item.creditUnit}
+                          {c.creditUnit ?? item.creditUnit}
                         </td>
+
                         <td className="py-2 px-3 text-zinc-600">{c.isElective ? "Elective" : "Core"}</td>
                         <td className="py-2 px-3 text-right text-emerald-700 font-semibold">
                           Confirmed

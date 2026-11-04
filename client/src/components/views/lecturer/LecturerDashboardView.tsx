@@ -150,8 +150,9 @@ export function LecturerDashboardView() {
                         {alloc.course?.title}
                       </td>
                       <td className="py-3 px-3 text-center font-bold text-zinc-700 dark:text-zinc-300">
-                        {alloc.course?.creditUnits}
+                        {alloc.course?.creditUnit}
                       </td>
+
                       <td className="py-3 px-3 text-center">
                         <Badge variant="outline" className="text-[10px]">
                           {alloc.course?.level} Level

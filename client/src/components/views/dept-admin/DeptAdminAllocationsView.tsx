@@ -163,8 +163,14 @@ export function DeptAdminAllocationsView() {
                       <td className="py-3 px-4 font-medium text-zinc-800 dark:text-zinc-200">
                         {alloc.course?.title}
                       </td>
-                      <td className="py-3 px-4 font-semibold">{alloc.course?.creditUnits} Units</td>
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">
+                          {alloc.course?.creditUnit ?? 0} {alloc.course?.creditUnit === 1 ? "Unit" : "Units"}
+                        </span>
+                      </td>
+
                       <td className="py-3 px-4">{alloc.course?.level}L</td>
+
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-burgundy-100 dark:bg-burgundy-950 text-burgundy-700 dark:text-burgundy-300 flex items-center justify-center font-bold text-[10px]">
@@ -226,9 +232,11 @@ export function DeptAdminAllocationsView() {
                   <option value="">-- Choose Course --</option>
                   {courses.map((c) => (
                     <option key={c._id} value={c._id}>
-                      {c.code} - {c.title} ({c.level} Level)
+                      {c.code} - {c.title} ({c.creditUnit} Units, {c.level}L)
                     </option>
                   ))}
+
+
                 </select>
               </div>
 

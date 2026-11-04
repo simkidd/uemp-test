@@ -189,8 +189,9 @@ export function StudentDashboardView() {
                           {c.title}
                         </td>
                         <td className="py-2.5 px-3 text-center font-bold text-zinc-700 dark:text-zinc-300">
-                          {c.creditUnit ?? c.creditUnits ?? item.creditUnit}
+                          {c.creditUnit ?? item.creditUnit}
                         </td>
+
                         <td className="py-2.5 px-3">
                           <span
                             className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
