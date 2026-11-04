@@ -524,7 +524,7 @@ export function AdminUsersView() {
           }`}
         >
           <GraduationCap className="w-3.5 h-3.5" />
-          <span>Undergraduate Students</span>
+          <span>Students</span>
         </button>
 
         <button
@@ -997,24 +997,48 @@ export function AdminUsersView() {
                       </button>
                     </SheetDescription>
 
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-2 pt-1 flex-wrap">
                       {getRoleBadge(selectedUser.role)}
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          selectedUser.status === "ACTIVE"
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                            : "bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
-                        }`}
-                      >
+
+                      {selectedUser.role === "SUPER_ADMIN" ? (
+                        <Badge
+                          variant="outline"
+                          className="border-purple-300 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-semibold text-[10px] gap-1 px-2 py-0.5 rounded-full"
+                        >
+                          <ShieldCheck className="w-2.5 h-2.5" />
+                          Protected
+                        </Badge>
+                      ) : (
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            selectedUser.status === "ACTIVE"
-                              ? "bg-emerald-500"
-                              : "bg-rose-500"
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            isUserActive(selectedUser)
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                              : "bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
                           }`}
-                        />
-                        {selectedUser.status}
-                      </span>
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isUserActive(selectedUser)
+                                ? "bg-emerald-500"
+                                : "bg-rose-500"
+                            }`}
+                          />
+                          {isUserActive(selectedUser) ? "Active" : "Suspended"}
+                        </span>
+                      )}
+
+                      {Boolean(
+                        currentUser &&
+                          (currentUser._id === selectedUser._id ||
+                            currentUser.email === selectedUser.email),
+                      ) && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700 font-medium px-2 py-0.5 rounded-full"
+                        >
+                          You
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
