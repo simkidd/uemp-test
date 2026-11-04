@@ -4,19 +4,36 @@ import { ICourse } from './course.interface';
 
 export type ResultStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
 
-export interface IResult {
-  _id: string;
-  course: ICourse;
+export interface IStudentScore {
+  _id?: string;
   student: IUser;
-  session: ISession | string;
-  semester: ISemester | string;
-  lecturer: IUser | string;
   caScore: number;
   examScore: number;
   totalScore: number;
-  grade: 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
+  grade: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | string;
   gradePoint: number;
+  creditUnit?: number;
+  matricNumber?: string;
+  studentName?: string;
+}
+
+export interface IResult {
+  _id: string;
+  course: ICourse;
+  session: ISession | string;
+  semester: ISemester | string;
+  lecturer: IUser | string;
   status: ResultStatus;
+  scores?: IStudentScore[];
+  student?: IUser;
+  caScore?: number;
+  examScore?: number;
+  totalScore?: number;
+  grade?: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | string;
+  gradePoint?: number;
+  creditUnit?: number;
+  department?: any;
+  rejectionReason?: string;
   rejectionRemarks?: string;
   submittedAt?: string;
   approvedAt?: string;

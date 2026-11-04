@@ -333,6 +333,7 @@ export class ResultController {
       .populate("session", "name")
       .populate("semester", "name")
       .populate("department", "name code")
+      .populate("scores.student", "firstName lastName otherName email studentProfile")
       .sort({ submittedAt: -1 });
 
     return sendSuccess(res, pending, "Pending submissions retrieved successfully");

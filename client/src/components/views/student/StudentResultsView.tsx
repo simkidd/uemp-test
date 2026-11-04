@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { useAuthStore } from "@/stores/auth.store";
 import { useStudentResults } from "@/hooks/queries";
 import { GRADING_SCALE } from "@/constants";
@@ -61,6 +62,30 @@ export function StudentResultsView() {
   const totalCoursesCount = semesters.reduce((sum, s) => sum + s.courses.length, 0);
   const totalUnitsAccumulated = semesters.reduce((sum, s) => sum + s.totalUnits, 0);
 
+  const facultyName =
+    (user?.department?.faculty as any)?.name ||
+    (user?.faculty as any)?.name ||
+    "Faculty of Natural & Applied Sciences";
+
+  const departmentName =
+    user?.department?.name ||
+    (typeof user?.department === "string" ? user.department : null) ||
+    "Department of Computer Science";
+
+  const programmeName =
+    (user?.studentProfile?.programme as any)?.name ||
+    (typeof user?.studentProfile?.programme === "string"
+      ? user.studentProfile.programme
+      : null) ||
+    "B.Sc. Computer Science";
+
+  const avatarUrl =
+    typeof user?.avatar === "object" && user?.avatar?.url
+      ? user.avatar.url
+      : typeof user?.avatar === "string" && user.avatar
+      ? user.avatar
+      : (user?.studentProfile as any)?.passportPhoto || null;
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -71,7 +96,7 @@ export function StudentResultsView() {
           </h2>
           <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
             Official confirmed examination grades for {user?.firstName} {user?.lastName} &bull;{" "}
-            {user?.studentProfile?.level || 200} Level Computer Science
+            {user?.studentProfile?.level || 200} Level &bull; {programmeName}
           </p>
         </div>
 
@@ -90,7 +115,7 @@ export function StudentResultsView() {
 
       {/* Cumulative GPA & Academic Standing Banner */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-burgundy-200/80 dark:border-burgundy-900/60 bg-gradient-to-br from-burgundy-800 to-rose-950 text-white shadow-md md:col-span-2">
+        <Card className="border-burgundy-200/80 dark:border-burgundy-900/60 bg-gradient-to-br from-burgundy-800 to-rose-950 text-white shadow-md md:col-span-2 py-0 gap-0 overflow-hidden">
           <CardContent className="p-6 flex flex-col justify-between h-full space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs uppercase font-bold tracking-wider text-rose-100 flex items-center gap-1.5">
@@ -118,30 +143,30 @@ export function StudentResultsView() {
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs">
-          <CardHeader className="pb-2">
+        <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs py-0 gap-0 overflow-hidden">
+          <CardHeader className="p-5 pb-2">
             <CardDescription className="text-xs flex items-center gap-1.5">
               <BookOpen className="w-3.5 h-3.5 text-burgundy-700" />
               Completed Units
             </CardDescription>
             <CardTitle className="text-2xl font-bold">{totalUnitsAccumulated} Units</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-5 pb-5 pt-0">
             <p className="text-[11px] text-zinc-500">
               Across {semesters.length} official completed semester(s).
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs">
-          <CardHeader className="pb-2">
+        <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs py-0 gap-0 overflow-hidden">
+          <CardHeader className="p-5 pb-2">
             <CardDescription className="text-xs flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
               Passed Courses
             </CardDescription>
             <CardTitle className="text-2xl font-bold">{totalCoursesCount} Courses</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-5 pb-5 pt-0">
             <p className="text-[11px] text-zinc-500">
               All departmental core and elective results verified.
             </p>
@@ -168,8 +193,8 @@ export function StudentResultsView() {
 
       {/* Semester Results Tables */}
       {semesters.map((sem) => (
-        <Card key={sem.sessionAndSemester} className="border-zinc-200 dark:border-zinc-800 shadow-xs">
-          <CardHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800">
+        <Card key={sem.sessionAndSemester} className="border-zinc-200 dark:border-zinc-800 shadow-xs py-0 gap-0 overflow-hidden">
+          <CardHeader className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-0.5">
                 <CardTitle className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
@@ -190,7 +215,7 @@ export function StudentResultsView() {
             </div>
           </CardHeader>
 
-          <CardContent className="pt-4">
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
@@ -198,7 +223,7 @@ export function StudentResultsView() {
                     <th className="py-2.5 px-3 w-10 text-center">S/N</th>
                     <th className="py-2.5 px-3">Course Code</th>
                     <th className="py-2.5 px-3">Course Title</th>
-                    <th className="py-2.5 px-3 text-center">Credit Units</th>
+                    <th className="py-2.5 px-3 text-center">Credit Unit</th>
                     <th className="py-2.5 px-3 text-center">CA (0-40)</th>
                     <th className="py-2.5 px-3 text-center">Exam (0-70)</th>
                     <th className="py-2.5 px-3 text-center font-bold">Total (100)</th>
@@ -250,8 +275,8 @@ export function StudentResultsView() {
       ))}
 
       {/* Standard Nigerian 5.0 Grading System Guide */}
-      <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs">
-        <CardHeader className="pb-2">
+      <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs py-0 gap-0 overflow-hidden">
+        <CardHeader className="p-4 sm:p-5 pb-2">
           <CardTitle className="text-sm font-bold flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
             University 5.0 Point Grading Scale Matrix
@@ -260,7 +285,7 @@ export function StudentResultsView() {
             Standard Credit-Unit-Weighted calculation formula adopted across all academic faculties.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-5 pt-0">
           <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center text-xs">
             {GRADING_SCALE.map((g) => (
               <div
@@ -292,24 +317,43 @@ export function StudentResultsView() {
           title="Official Statement of Academic Results"
           subtitle={`Issued to: ${user?.firstName} ${user?.lastName} • Matric: ${user?.studentProfile?.matricNumber || "UEMP/2024/001"}`}
         >
-          {/* Institutional Letterhead */}
-          <div className="text-center border-b border-zinc-300 pb-5 space-y-1">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-burgundy-700 text-white mb-2 shadow-xs">
-              <GraduationCap className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-black tracking-tight uppercase text-zinc-900">
-              LEAD WEB PRAXIS UNIVERSITY (UEMP)
-            </h3>
-            <p className="text-xs font-semibold text-zinc-600 uppercase tracking-wider">
-              OFFICE OF THE REGISTRAR &bull; OFFICIAL STATEMENT OF ACADEMIC RESULTS
-            </p>
-            <div className="pt-1 flex flex-wrap items-center justify-center gap-3">
-              <span className="inline-block px-3 py-1 rounded-full bg-zinc-100 text-zinc-800 text-[11px] font-bold uppercase tracking-wider border border-zinc-300">
-                CONFIDENTIAL TRANSCRIPT OF ACADEMIC PERFORMANCE
-              </span>
-              <span className="text-[11px] font-mono text-zinc-500 font-medium">
-                Issued: {formatDate(new Date(), DATE_FORMATS.DATE_FULL)}
-              </span>
+          {/* Institutional Crest, Letterhead & Passport Photo */}
+          <div className="border-b-2 border-zinc-900 pb-5 space-y-2">
+            <div className="flex items-center justify-between gap-4">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-burgundy-700 text-white shrink-0 shadow-xs">
+                <GraduationCap className="w-8 h-8" />
+              </div>
+              <div className="text-center flex-1 space-y-1">
+                <h3 className="text-lg sm:text-xl font-black tracking-tight uppercase text-zinc-900">
+                  LEAD WEB PRAXIS UNIVERSITY (UEMP)
+                </h3>
+                <p className="text-[11px] font-bold text-zinc-600 uppercase tracking-widest">
+                  OFFICE OF THE REGISTRAR &bull; OFFICIAL STATEMENT OF ACADEMIC RESULTS
+                </p>
+                <div className="pt-0.5 flex flex-wrap items-center justify-center gap-2">
+                  <span className="inline-block px-3 py-0.5 rounded-full bg-zinc-100 text-zinc-900 text-[10px] font-extrabold uppercase tracking-wider border border-zinc-300">
+                    CONFIDENTIAL STATEMENT OF ACADEMIC RESULTS
+                  </span>
+                  <span className="text-[10px] font-mono text-zinc-500 font-medium">
+                    Issued: {formatDate(new Date(), DATE_FORMATS.DATE_FULL)}
+                  </span>
+                </div>
+              </div>
+              {/* Student Passport Photo Frame */}
+              <div className="w-20 h-24 rounded border-2 border-zinc-400 bg-zinc-100 relative overflow-hidden shrink-0 shadow-2xs flex items-center justify-center text-center">
+                {avatarUrl ? (
+                  <Image
+                    src={avatarUrl}
+                    alt={user?.firstName || "Student"}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <span className="text-[9px] uppercase font-bold text-zinc-400 p-1">
+                    Passport Photo
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -330,13 +374,13 @@ export function StudentResultsView() {
             <div>
               <span className="text-zinc-500 font-medium">Faculty:</span>
               <p className="font-semibold text-zinc-800">
-                {user?.faculty?.name || "Faculty of Science"}
+                {facultyName}
               </p>
             </div>
             <div>
-              <span className="text-zinc-500 font-medium">Department:</span>
+              <span className="text-zinc-500 font-medium">Department &amp; Programme:</span>
               <p className="font-semibold text-zinc-800">
-                {user?.department?.name || "Computer Science"} (B.Sc.)
+                {departmentName} &bull; {programmeName}
               </p>
             </div>
             <div>
@@ -371,7 +415,7 @@ export function StudentResultsView() {
                   <th className="py-2 px-3">Session &amp; Semester</th>
                   <th className="py-2 px-3">Course Code</th>
                   <th className="py-2 px-3">Course Title</th>
-                  <th className="py-2 px-3 text-center">Units</th>
+                  <th className="py-2 px-3 text-center">Credit Unit</th>
                   <th className="py-2 px-3 text-center">Total Score</th>
                   <th className="py-2 px-3 text-center">Grade</th>
                   <th className="py-2 px-3 text-right">Points</th>

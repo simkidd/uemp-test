@@ -40,6 +40,13 @@ export function StudentProfileView() {
 
   const [phone, setPhone] = useState(user?.phone || "+2348055667788");
 
+  const avatarUrl =
+    typeof user?.avatar === "object" && user?.avatar?.url
+      ? user.avatar.url
+      : typeof user?.avatar === "string" && user.avatar
+      ? user.avatar
+      : (user?.studentProfile as any)?.passportPhoto || null;
+
   useEffect(() => {
     if (user?.phone) {
       setPhone(user.phone);
@@ -108,32 +115,27 @@ export function StudentProfileView() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Column: Student ID Card */}
-        <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs md:col-span-1 text-center p-6 flex flex-col items-center justify-between space-y-4">
+        <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs md:col-span-1 text-center p-5 sm:p-6 flex flex-col items-center justify-between space-y-4 py-0 gap-0 overflow-hidden">
           <div className="space-y-4 flex flex-col items-center w-full">
-            <div className="relative w-28 h-28 rounded-2xl bg-gradient-to-tr from-burgundy-700 to-burgundy-900 text-white font-bold text-3xl flex items-center justify-center shadow-md overflow-hidden border-2 border-white dark:border-zinc-800">
-              {typeof user?.avatar === "object" && user.avatar?.url ? (
+            <div className="relative w-28 h-36 sm:w-32 sm:h-40 rounded-lg overflow-hidden border-2 border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 shrink-0 shadow-xs flex flex-col items-center justify-center">
+              {avatarUrl ? (
                 <Image
-                  src={user.avatar.url}
-                  alt={user.firstName}
+                  src={avatarUrl}
+                  alt={`${user?.firstName} ${user?.lastName}`}
                   fill
-                  sizes="112px"
-                  className="object-cover"
-                  priority
-                />
-              ) : typeof user?.avatar === "string" && user.avatar ? (
-                <Image
-                  src={user.avatar}
-                  alt={user.firstName}
-                  fill
-                  sizes="112px"
+                  sizes="128px"
                   className="object-cover"
                   priority
                 />
               ) : (
-                <span>
-                  {user?.firstName?.[0]}
-                  {user?.lastName?.[0]}
-                </span>
+                <div className="w-full h-full bg-burgundy-50 dark:bg-burgundy-950/60 text-burgundy-800 dark:text-burgundy-300 flex flex-col items-center justify-center p-2 text-center">
+                  <span className="font-bold text-2xl font-serif">
+                    {user?.firstName?.[0] || "S"}{user?.lastName?.[0] || ""}
+                  </span>
+                  <span className="text-[10px] uppercase font-semibold text-zinc-400 mt-1">
+                    Passport Photo
+                  </span>
+                </div>
               )}
             </div>
 
@@ -158,7 +160,7 @@ export function StudentProfileView() {
                 <BadgeCheck className="w-4 h-4 text-emerald-500" />
                 Status:
               </span>
-              <span className="font-bold text-emerald-600">Active Enrolled</span>
+              <span className="font-bold text-emerald-600">Active Student</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5">
@@ -182,8 +184,8 @@ export function StudentProfileView() {
         {/* Right Column: Profile Details & Updates */}
         <div className="md:col-span-2 space-y-6">
           {/* Institutional Academic Record Card (Read-Only) */}
-          <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs">
-            <CardHeader className="pb-3">
+          <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs py-0 gap-0 overflow-hidden">
+            <CardHeader className="p-4 sm:p-5 pb-2">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
                 <GraduationCap className="w-4 h-4 text-burgundy-700" />
                 Official Academic Identity (Verified)
@@ -192,7 +194,7 @@ export function StudentProfileView() {
                 Managed directly by the Academic Affairs Division and Department Administrator.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <CardContent className="p-4 sm:p-5 pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800">
                 <span className="text-zinc-500 block">Faculty:</span>
                 <span className="font-semibold text-zinc-900 dark:text-zinc-100">
@@ -223,8 +225,8 @@ export function StudentProfileView() {
           </Card>
 
           {/* Permitted Contact Update Card */}
-          <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs">
-            <CardHeader className="pb-3">
+          <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs py-0 gap-0 overflow-hidden">
+            <CardHeader className="p-4 sm:p-5 pb-2">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
                 <Phone className="w-4 h-4 text-burgundy-700" />
                 Permitted Contact Information
@@ -233,7 +235,7 @@ export function StudentProfileView() {
                 Students may update personal telephone numbers for SMS emergency alerts.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-5 pt-2">
               <form onSubmit={handleSavePhone} className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="phone" className="text-xs font-semibold">
@@ -280,8 +282,8 @@ export function StudentProfileView() {
           </Card>
 
           {/* Security & Password Change */}
-          <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs">
-            <CardHeader className="pb-3">
+          <Card className="border-zinc-200 dark:border-zinc-800 shadow-xs py-0 gap-0 overflow-hidden">
+            <CardHeader className="p-4 sm:p-5 pb-2">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
                 <KeyRound className="w-4 h-4 text-burgundy-700 dark:text-burgundy-400" />
                 Change Portal Password
@@ -290,7 +292,7 @@ export function StudentProfileView() {
                 Ensure your portal password is secure and not shared with others.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-5 pt-2">
               <form onSubmit={handleChangePassword} className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-1">
